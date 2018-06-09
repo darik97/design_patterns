@@ -1,5 +1,4 @@
 using Patterns.Ex05.ExternalLibs;
-using System;
 using System.Collections.Generic;
 
 namespace Patterns.Ex05.SubEx_01
@@ -9,6 +8,9 @@ namespace Patterns.Ex05.SubEx_01
         public void Main(bool b)
         {
             var databaseSaver = new DatabaseObservable();
+            databaseSaver.Observable.Add(new MailSenderObserver());
+            databaseSaver.Observable.Add(new CacheUpdaterObserver());
+
             DoSmth(databaseSaver);
 
         }
@@ -19,30 +21,59 @@ namespace Patterns.Ex05.SubEx_01
         }
     }
 
-
     class DatabaseObservable : IDatabaseSaver
     {
-        DatabaseSaver dbSaver;
-        CacheUpdater cacheUpdater;
-        MailSender mailSender;
-
-        List<Action<>> actions;
-        public DatabaseObservable()
-        {
-            dbSaver = new DatabaseSaver();
-            cacheUpdater = new CacheUpdater();
-            mailSender = new MailSender();
-        }
+        public Observable Observable = new Observable();
+        
         public void SaveData(object data)
         {
-            dbSaver.SaveData(data);
-            mailSender.Send("email");
-            cacheUpdater.UpdateCache();
+            Observable.Notify();
+        }
+    }
+
+    class Observable
+    {
+        List<IObserver> observers = new List<IObserver>();
+
+        public void Add(IObserver observer)
+        {
+            observers.Add(observer);
         }
 
-        public void AddAction(Action<> action)
+        public void Delete(IObserver observer)
         {
+            observers.RemoveAt(observers.IndexOf(observer));
+        }
 
+        public void Notify()
+        {
+            observers.ForEach(o => o.Update());
+        }
+    }
+
+    public interface IObserver
+    {
+        void Update();
+    }
+
+    class MailSenderObserver : IObserver
+    {
+        MailSender sender;
+        string email;
+
+        public void Update()
+        {
+            sender.Send(email);
+        }
+    }
+
+    class CacheUpdaterObserver : IObserver
+    {
+        CacheUpdater updater;
+
+        public void Update()
+        {
+            updater.UpdateCache();
         }
     }
 }
